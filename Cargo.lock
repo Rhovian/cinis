@@ -1633,11 +1633,15 @@ dependencies = [
  "solana-instruction-view",
  "solana-program-error",
  "solana-program-log",
+ "wincode 0.4.9",
 ]
 
 [[package]]
 name = "quasar-pod"
 version = "0.0.0"
+dependencies = [
+ "wincode 0.4.9",
+]
 
 [[package]]
 name = "quasar-spl"
@@ -2032,7 +2036,7 @@ dependencies = [
  "solana-program-error",
  "solana-sanitize",
  "solana-sha256-hasher",
- "wincode",
+ "wincode 0.5.1",
 ]
 
 [[package]]
@@ -2257,7 +2261,7 @@ dependencies = [
  "serde_derive",
  "solana-atomic-u64",
  "solana-sanitize",
- "wincode",
+ "wincode 0.5.1",
 ]
 
 [[package]]
@@ -3180,6 +3184,19 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+
+[[package]]
+name = "wincode"
+version = "0.4.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "657690780ce23e6f66576a782ffd88eb353512381817029cc1d7a99154bb6d1f"
+dependencies = [
+ "pastey",
+ "proc-macro2",
+ "quote",
+ "thiserror 2.0.18",
+ "wincode-derive",
+]
 
 [[package]]
 name = "wincode"

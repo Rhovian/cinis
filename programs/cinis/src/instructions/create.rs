@@ -7,7 +7,7 @@ use {
 #[derive(Accounts)]
 pub struct Create<'info> {
     pub challenger: &'info mut Signer,
-    #[account(init, payer = challenger, seeds = [b"duel", challenger], bump)]
+    #[account(init, payer = challenger, seeds = Duel::seeds(challenger), bump)]
     pub duel: &'info mut Account<Duel>,
     pub authority: &'info UncheckedAccount,
     pub mint: &'info Account<Mint>,

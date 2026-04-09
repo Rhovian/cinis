@@ -6,9 +6,9 @@ mod error;
 mod instructions;
 use instructions::*;
 mod events;
-mod state;
 #[cfg(test)]
 mod idl_client;
+mod state;
 #[cfg(test)]
 mod tests;
 
@@ -41,16 +41,19 @@ mod cinis {
     #[instruction(discriminator = 2)]
     pub fn resolve(ctx: Ctx<Resolve>, winner: u8) -> Result<(), ProgramError> {
         ctx.accounts.validate_winner(winner)?;
-        ctx.accounts.pay_fee(&ctx.bumps)?;
-        ctx.accounts.pay_winner(winner, &ctx.bumps)?;
-        ctx.accounts.close_vault(&ctx.bumps)?;
+        ctx.accounts.pay_fee()?;
+        ctx.accounts.pay_winner()?;
+        ctx.accounts.close_vault()?;
+        ctx.accounts.close_duel()?;
         ctx.accounts.emit_event(winner)
     }
 
     #[instruction(discriminator = 3)]
     pub fn cancel(ctx: Ctx<Cancel>) -> Result<(), ProgramError> {
         ctx.accounts.validate_cancel()?;
-        ctx.accounts.withdraw_and_close(&ctx.bumps)?;
+        ctx.accounts.prepare_refund_accounts()?;
+        ctx.accounts.withdraw_and_close()?;
+        ctx.accounts.close_duel()?;
         ctx.accounts.emit_event()
     }
 }

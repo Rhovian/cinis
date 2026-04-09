@@ -42,7 +42,7 @@ Trusted authority declares a winner (`0` = challenger, `1` = opponent). Platform
 
 ## Limitations
 
-- One active duel per challenger ([quasar#115](https://github.com/blueshift-gg/quasar/issues/115))
+- One active duel per challenger under the current PDA scheme (`[b"duel", challenger]`)
 
 ## Development
 

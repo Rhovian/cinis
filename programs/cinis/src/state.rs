@@ -8,13 +8,11 @@ pub const STATUS_ACTIVE: u8 = 1;
 ///
 /// Seeds: `[b"duel", challenger]`
 ///
-/// NOTE: One active duel per challenger until blueshift-gg/quasar#115 is
-/// resolved, then seeds become `[b"duel", challenger, &duel_id.to_le_bytes()]`.
-///
-/// Layout (173 bytes):
+/// Layout (181 bytes):
 ///   disc(1) + challenger(32) + opponent(32) + mint(32) + authority(32)
 ///   + fee_account(32) + stake(8) + expiry(8) + fee_bps(2) + status(1) + bump(1)
 #[account(discriminator = 1)]
+#[seeds(b"duel", challenger: Address)]
 pub struct Duel {
     pub challenger: Address,
     pub opponent: Address,

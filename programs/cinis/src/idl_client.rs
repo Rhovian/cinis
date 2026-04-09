@@ -77,7 +77,7 @@ impl From<AcceptInstruction> for Instruction {
 pub struct ResolveInstruction {
     pub authority: Address,
     pub duel: Address,
-    pub challenger: Address,
+    pub winner_account: Address,
     pub mint: Address,
     pub winner_ta: Address,
     pub fee_account: Address,
@@ -91,9 +91,9 @@ pub struct ResolveInstruction {
 impl From<ResolveInstruction> for Instruction {
     fn from(ix: ResolveInstruction) -> Instruction {
         let accounts = vec![
-            AccountMeta::new_readonly(ix.authority, true),
+            AccountMeta::new(ix.authority, true),
             AccountMeta::new(ix.duel, false),
-            AccountMeta::new(ix.challenger, false),
+            AccountMeta::new_readonly(ix.winner_account, false),
             AccountMeta::new_readonly(ix.mint, false),
             AccountMeta::new(ix.winner_ta, false),
             AccountMeta::new(ix.fee_account, false),
@@ -114,7 +114,6 @@ impl From<ResolveInstruction> for Instruction {
 pub struct CancelInstruction {
     pub canceller: Address,
     pub duel: Address,
-    pub challenger: Address,
     pub mint: Address,
     pub challenger_ta: Address,
     pub opponent_ta: Address,
@@ -129,7 +128,6 @@ impl From<CancelInstruction> for Instruction {
         let accounts = vec![
             AccountMeta::new(ix.canceller, true),
             AccountMeta::new(ix.duel, false),
-            AccountMeta::new(ix.challenger, false),
             AccountMeta::new_readonly(ix.mint, false),
             AccountMeta::new(ix.challenger_ta, false),
             AccountMeta::new(ix.opponent_ta, false),

@@ -14,7 +14,7 @@ pub struct Accept<'info> {
     #[account(
         has_one = challenger,
         constraint = duel.status == STATUS_PENDING @ CinisError::NotPending,
-        seeds = [b"duel", challenger],
+        seeds = Duel::seeds(challenger),
         bump = duel.bump
     )]
     pub duel: &'info mut Account<Duel>,
