@@ -1,0 +1,11 @@
+[workspace]
+members = ["programs/cinis"]
+resolver = "2"
+
+[workspace.lints.clippy]
+missing_safety_doc = "allow"
+
+[profile.release]
+lto = "fat"
+overflow-checks = true
+opt-level = 3

@@ -1,0 +1,7 @@
+[simnet]
+slot_time = 400
+
+[deployment]
+programs = [
+    { name = "cinis", binary = "target/deploy/cinis.so" },
+]
