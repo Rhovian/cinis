@@ -8,17 +8,18 @@ use {
 };
 
 #[derive(Accounts)]
-pub struct InitializeConfig<'info> {
-    pub admin: &'info mut Signer,
-    #[account(init, payer = admin, seeds = Config::seeds(), bump)]
-    pub config: &'info mut Account<Config>,
+pub struct InitializeConfig {
+    #[account(mut)]
+    pub admin: Signer,
+    #[account(mut, init, payer = admin, seeds = Config::seeds(), bump)]
+    pub config: Account<Config>,
     /// CHECK: recorded as treasury wallet; fee ATAs are derived from this
-    pub treasury: &'info UncheckedAccount,
-    pub rent: &'info Sysvar<Rent>,
-    pub system_program: &'info Program<System>,
+    pub treasury: UncheckedAccount,
+    pub rent: Sysvar<Rent>,
+    pub system_program: Program<System>,
 }
 
-impl<'info> InitializeConfig<'info> {
+impl InitializeConfig {
     #[inline(always)]
     pub fn init_config(
         &mut self,

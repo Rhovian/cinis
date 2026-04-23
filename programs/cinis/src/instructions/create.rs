@@ -10,41 +10,45 @@ use {
 
 #[derive(Accounts)]
 #[instruction(duel_id: u64)]
-pub struct Create<'info> {
-    pub challenger: &'info mut Signer,
+pub struct Create {
+    #[account(mut)]
+    pub challenger: Signer,
     #[account(seeds = Config::seeds(), bump = config.bump)]
-    pub config: &'info Account<Config>,
+    pub config: Account<Config>,
     #[account(
+        mut,
         init_if_needed,
         payer = challenger,
         seeds = Challenger::seeds(challenger),
         bump
     )]
-    pub challenger_state: &'info mut Account<Challenger>,
+    pub challenger_state: Account<Challenger>,
     #[account(
+        mut,
         init,
         payer = challenger,
         seeds = Duel::seeds(challenger, duel_id),
         bump
     )]
-    pub duel: &'info mut Account<Duel>,
-    pub mint: &'info Account<Mint>,
+    pub duel: Account<Duel>,
+    pub mint: Account<Mint>,
     #[account(mut)]
-    pub challenger_ta: &'info mut Account<Token>,
+    pub challenger_ta: Account<Token>,
     #[account(
+        mut,
         init_if_needed,
         payer = challenger,
         associated_token::mint = mint,
         associated_token::authority = duel
     )]
-    pub vault: &'info mut Account<Token>,
-    pub rent: &'info Sysvar<Rent>,
-    pub token_program: &'info Program<Token>,
-    pub associated_token_program: &'info Program<AssociatedTokenProgram>,
-    pub system_program: &'info Program<System>,
+    pub vault: Account<Token>,
+    pub rent: Sysvar<Rent>,
+    pub token_program: Program<Token>,
+    pub associated_token_program: Program<AssociatedTokenProgram>,
+    pub system_program: Program<System>,
 }
 
-impl<'info> Create<'info> {
+impl Create {
     #[inline(always)]
     pub fn tick_tip(
         &mut self,
@@ -86,7 +90,7 @@ impl<'info> Create<'info> {
     #[inline(always)]
     pub fn deposit_stake(&mut self, stake: u64) -> Result<(), ProgramError> {
         self.token_program
-            .transfer(self.challenger_ta, self.vault, self.challenger, stake)
+            .transfer(&self.challenger_ta, &self.vault, &self.challenger, stake)
             .invoke()
     }
 

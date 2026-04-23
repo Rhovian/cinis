@@ -13,8 +13,9 @@ use {
 
 #[derive(Accounts)]
 #[instruction(challenger_key: Address, duel_id: u64)]
-pub struct Accept<'info> {
-    pub opponent: &'info mut Signer,
+pub struct Accept {
+    #[account(mut)]
+    pub opponent: Signer,
     #[account(
         mut,
         has_one = mint,
@@ -22,16 +23,16 @@ pub struct Accept<'info> {
         seeds = Duel::seeds(challenger_key, duel_id),
         bump = duel.bump
     )]
-    pub duel: &'info mut Account<Duel>,
-    pub mint: &'info Account<Mint>,
+    pub duel: Account<Duel>,
+    pub mint: Account<Mint>,
     #[account(mut)]
-    pub opponent_ta: &'info mut Account<Token>,
+    pub opponent_ta: Account<Token>,
     #[account(mut, token::mint = mint, token::authority = duel)]
-    pub vault: &'info mut Account<Token>,
-    pub token_program: &'info Program<Token>,
+    pub vault: Account<Token>,
+    pub token_program: Program<Token>,
 }
 
-impl<'info> Accept<'info> {
+impl Accept {
     #[inline(always)]
     pub fn accept_duel(&mut self) -> Result<(), ProgramError> {
         let now = Clock::get()?.unix_timestamp.get();
@@ -47,7 +48,7 @@ impl<'info> Accept<'info> {
     pub fn deposit_stake(&mut self) -> Result<(), ProgramError> {
         let stake = self.duel.stake.get();
         self.token_program
-            .transfer(self.opponent_ta, self.vault, self.opponent, stake)
+            .transfer(&self.opponent_ta, &self.vault, &self.opponent, stake)
             .invoke()
     }
 

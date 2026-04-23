@@ -10,16 +10,16 @@ use {
 
 #[derive(Accounts)]
 #[instruction(challenger_key: Address, duel_id: u64)]
-pub struct Resolve<'info> {
+pub struct Resolve {
     #[account(mut)]
-    pub admin: &'info mut Signer,
+    pub admin: Signer,
     #[account(
         has_one = admin,
         has_one = treasury,
         seeds = Config::seeds(),
         bump = config.bump
     )]
-    pub config: &'info Account<Config>,
+    pub config: Account<Config>,
     #[account(
         mut,
         has_one = mint,
@@ -28,29 +28,26 @@ pub struct Resolve<'info> {
         seeds = Duel::seeds(challenger_key, duel_id),
         bump = duel.bump
     )]
-    pub duel: &'info mut Account<Duel>,
+    pub duel: Account<Duel>,
     /// CHECK: wallet whose address matches config.treasury via has_one
-    pub treasury: &'info UncheckedAccount,
+    pub treasury: UncheckedAccount,
     /// CHECK: validated in `validate_winner`
-    pub winner_account: &'info UncheckedAccount,
-    pub mint: &'info Account<Mint>,
+    pub winner_account: UncheckedAccount,
+    pub mint: Account<Mint>,
     #[account(mut)]
-    pub winner_ta: &'info mut Account<Token>,
+    pub winner_ta: Account<Token>,
     #[account(mut, token::mint = mint, token::authority = treasury)]
-    pub treasury_ta: &'info mut Account<Token>,
+    pub treasury_ta: Account<Token>,
     #[account(mut, token::mint = mint, token::authority = duel)]
-    pub vault: &'info mut Account<Token>,
-    pub rent: &'info Sysvar<Rent>,
-    pub token_program: &'info Program<Token>,
-    pub system_program: &'info Program<System>,
+    pub vault: Account<Token>,
+    pub rent: Sysvar<Rent>,
+    pub token_program: Program<Token>,
+    pub system_program: Program<System>,
 }
 
-impl<'info> Resolve<'info> {
+impl Resolve {
     #[inline(always)]
     pub fn validate_winner(&self, winner: u8) -> Result<(), ProgramError> {
-        // Duel is guaranteed ACTIVE by the account constraint, which means
-        // accept() has run and opponent is non-default — no defensive check
-        // needed here.
         let expected = match winner {
             0 => self.duel.challenger,
             1 => self.duel.opponent,
@@ -83,9 +80,17 @@ impl<'info> Resolve<'info> {
             .ok_or(ProgramError::ArithmeticOverflow)? as u64;
 
         if fee > 0 {
-            let seeds = self.duel_seeds(bumps);
+            let challenger = self.duel.challenger;
+            let duel_id_bytes = self.duel.duel_id.get().to_le_bytes();
+            let bump = [bumps.duel];
+            let seeds = [
+                quasar_lang::cpi::Seed::from(b"duel" as &[u8]),
+                quasar_lang::cpi::Seed::from(challenger.as_ref()),
+                quasar_lang::cpi::Seed::from(&duel_id_bytes as &[u8]),
+                quasar_lang::cpi::Seed::from(&bump as &[u8]),
+            ];
             self.token_program
-                .transfer(self.vault, self.treasury_ta, self.duel, fee)
+                .transfer(&self.vault, &self.treasury_ta, &self.duel, fee)
                 .invoke_signed(&seeds)?;
         }
         Ok(())
@@ -93,18 +98,34 @@ impl<'info> Resolve<'info> {
 
     #[inline(always)]
     pub fn pay_winner(&mut self, bumps: &ResolveBumps) -> Result<(), ProgramError> {
-        let seeds = self.duel_seeds(bumps);
+        let challenger = self.duel.challenger;
+        let duel_id_bytes = self.duel.duel_id.get().to_le_bytes();
+        let bump = [bumps.duel];
+        let seeds = [
+            quasar_lang::cpi::Seed::from(b"duel" as &[u8]),
+            quasar_lang::cpi::Seed::from(challenger.as_ref()),
+            quasar_lang::cpi::Seed::from(&duel_id_bytes as &[u8]),
+            quasar_lang::cpi::Seed::from(&bump as &[u8]),
+        ];
         let remaining = self.vault.amount();
         self.token_program
-            .transfer(self.vault, self.winner_ta, self.duel, remaining)
+            .transfer(&self.vault, &self.winner_ta, &self.duel, remaining)
             .invoke_signed(&seeds)
     }
 
     #[inline(always)]
     pub fn close_vault(&mut self, bumps: &ResolveBumps) -> Result<(), ProgramError> {
-        let seeds = self.duel_seeds(bumps);
+        let challenger = self.duel.challenger;
+        let duel_id_bytes = self.duel.duel_id.get().to_le_bytes();
+        let bump = [bumps.duel];
+        let seeds = [
+            quasar_lang::cpi::Seed::from(b"duel" as &[u8]),
+            quasar_lang::cpi::Seed::from(challenger.as_ref()),
+            quasar_lang::cpi::Seed::from(&duel_id_bytes as &[u8]),
+            quasar_lang::cpi::Seed::from(&bump as &[u8]),
+        ];
         self.token_program
-            .close_account(self.vault, self.admin, self.duel)
+            .close_account(&self.vault, &self.admin, &self.duel)
             .invoke_signed(&seeds)
     }
 

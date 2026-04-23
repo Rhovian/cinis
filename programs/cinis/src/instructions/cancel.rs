@@ -13,9 +13,9 @@ use {
 
 #[derive(Accounts)]
 #[instruction(challenger_key: Address, duel_id: u64)]
-pub struct Cancel<'info> {
+pub struct Cancel {
     #[account(mut)]
-    pub canceller: &'info mut Signer,
+    pub canceller: Signer,
     #[account(
         mut,
         has_one = mint,
@@ -23,20 +23,20 @@ pub struct Cancel<'info> {
         seeds = Duel::seeds(challenger_key, duel_id),
         bump = duel.bump
     )]
-    pub duel: &'info mut Account<Duel>,
-    pub mint: &'info Account<Mint>,
+    pub duel: Account<Duel>,
+    pub mint: Account<Mint>,
     #[account(mut)]
-    pub challenger_ta: &'info mut Account<Token>,
+    pub challenger_ta: Account<Token>,
     #[account(mut)]
-    pub opponent_ta: &'info mut Account<Token>,
+    pub opponent_ta: Account<Token>,
     #[account(mut, token::mint = mint, token::authority = duel)]
-    pub vault: &'info mut Account<Token>,
-    pub rent: &'info Sysvar<Rent>,
-    pub token_program: &'info Program<Token>,
-    pub system_program: &'info Program<System>,
+    pub vault: Account<Token>,
+    pub rent: Sysvar<Rent>,
+    pub token_program: Program<Token>,
+    pub system_program: Program<System>,
 }
 
-impl<'info> Cancel<'info> {
+impl Cancel {
     #[inline(always)]
     pub fn validate_cancel(&self) -> Result<(), ProgramError> {
         let canceller = self.canceller.address();
@@ -71,9 +71,6 @@ impl<'info> Cancel<'info> {
         )?;
 
         if self.duel.status == STATUS_ACTIVE {
-            if self.duel.opponent.as_ref() == Address::default().as_ref() {
-                return Err(ProgramError::InvalidAccountData);
-            }
             validate_token_account(
                 self.opponent_ta.to_account_view(),
                 self.mint.address(),
@@ -86,22 +83,30 @@ impl<'info> Cancel<'info> {
 
     #[inline(always)]
     pub fn withdraw_and_close(&mut self, bumps: &CancelBumps) -> Result<(), ProgramError> {
-        let seeds = self.duel_seeds(bumps);
+        let challenger = self.duel.challenger;
+        let duel_id_bytes = self.duel.duel_id.get().to_le_bytes();
+        let bump = [bumps.duel];
+        let seeds = [
+            quasar_lang::cpi::Seed::from(b"duel" as &[u8]),
+            quasar_lang::cpi::Seed::from(challenger.as_ref()),
+            quasar_lang::cpi::Seed::from(&duel_id_bytes as &[u8]),
+            quasar_lang::cpi::Seed::from(&bump as &[u8]),
+        ];
         let stake = self.duel.stake.get();
 
         if self.duel.status == STATUS_ACTIVE {
             self.token_program
-                .transfer(self.vault, self.opponent_ta, self.duel, stake)
+                .transfer(&self.vault, &self.opponent_ta, &self.duel, stake)
                 .invoke_signed(&seeds)?;
         }
 
         let remaining = self.vault.amount();
         self.token_program
-            .transfer(self.vault, self.challenger_ta, self.duel, remaining)
+            .transfer(&self.vault, &self.challenger_ta, &self.duel, remaining)
             .invoke_signed(&seeds)?;
 
         self.token_program
-            .close_account(self.vault, self.canceller, self.duel)
+            .close_account(&self.vault, &self.canceller, &self.duel)
             .invoke_signed(&seeds)
     }
 

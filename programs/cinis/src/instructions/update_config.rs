@@ -8,15 +8,15 @@ use {
 };
 
 #[derive(Accounts)]
-pub struct UpdateConfig<'info> {
-    pub admin: &'info Signer,
+pub struct UpdateConfig {
+    pub admin: Signer,
     #[account(mut, has_one = admin, seeds = Config::seeds(), bump = config.bump)]
-    pub config: &'info mut Account<Config>,
+    pub config: Account<Config>,
     /// CHECK: recorded as new treasury wallet
-    pub new_treasury: &'info UncheckedAccount,
+    pub new_treasury: UncheckedAccount,
 }
 
-impl<'info> UpdateConfig<'info> {
+impl UpdateConfig {
     #[inline(always)]
     pub fn update(&mut self, fee_bps: u16) -> Result<(), ProgramError> {
         if fee_bps > 10_000 {
