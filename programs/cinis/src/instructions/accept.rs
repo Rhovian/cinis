@@ -2,24 +2,31 @@ use {
     crate::{
         error::CinisError,
         events::AcceptEvent,
-        state::{Duel, STATUS_PENDING},
+        state::{Duel, STATUS_ACTIVE, STATUS_PENDING},
     },
-    quasar_lang::prelude::*,
-    quasar_spl::{Token, TokenCpi},
+    quasar_lang::{
+        prelude::*,
+        sysvars::{clock::Clock, Sysvar as _},
+    },
+    quasar_spl::{Mint, Token, TokenCpi},
 };
 
 #[derive(Accounts)]
+#[instruction(challenger_key: Address, duel_id: u64)]
 pub struct Accept<'info> {
     pub opponent: &'info mut Signer,
     #[account(
-        has_one = challenger,
+        mut,
+        has_one = mint,
         constraint = duel.status == STATUS_PENDING @ CinisError::NotPending,
-        seeds = Duel::seeds(challenger),
+        seeds = Duel::seeds(challenger_key, duel_id),
         bump = duel.bump
     )]
     pub duel: &'info mut Account<Duel>,
-    pub challenger: &'info UncheckedAccount,
+    pub mint: &'info Account<Mint>,
+    #[account(mut)]
     pub opponent_ta: &'info mut Account<Token>,
+    #[account(mut, token::mint = mint, token::authority = duel)]
     pub vault: &'info mut Account<Token>,
     pub token_program: &'info Program<Token>,
 }
@@ -27,15 +34,20 @@ pub struct Accept<'info> {
 impl<'info> Accept<'info> {
     #[inline(always)]
     pub fn accept_duel(&mut self) -> Result<(), ProgramError> {
+        let now = Clock::get()?.unix_timestamp.get();
+        if now > self.duel.expiry.get() {
+            return Err(CinisError::Expired.into());
+        }
         self.duel.opponent = *self.opponent.address();
-        self.duel.status = crate::state::STATUS_ACTIVE;
+        self.duel.status = STATUS_ACTIVE;
         Ok(())
     }
 
     #[inline(always)]
     pub fn deposit_stake(&mut self) -> Result<(), ProgramError> {
+        let stake = self.duel.stake.get();
         self.token_program
-            .transfer(self.opponent_ta, self.vault, self.opponent, self.duel.stake)
+            .transfer(self.opponent_ta, self.vault, self.opponent, stake)
             .invoke()
     }
 

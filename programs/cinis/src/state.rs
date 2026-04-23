@@ -4,24 +4,40 @@ use quasar_lang::prelude::*;
 pub const STATUS_PENDING: u8 = 0;
 pub const STATUS_ACTIVE: u8 = 1;
 
-/// Duel account — stores the state of a wager between two parties.
+/// Global program configuration — singleton PDA.
 ///
-/// Seeds: `[b"duel", challenger]`
+/// Seeds: `[b"config"]`
+#[account(discriminator = 1, set_inner)]
+#[seeds(b"config")]
+pub struct Config {
+    pub admin: Address,
+    pub treasury: Address,
+    pub fee_bps: u16,
+    pub bump: u8,
+}
+
+/// Per-challenger tip tracker.
 ///
-/// Layout (181 bytes):
-///   disc(1) + challenger(32) + opponent(32) + mint(32) + authority(32)
-///   + fee_account(32) + stake(8) + expiry(8) + fee_bps(2) + status(1) + bump(1)
-#[account(discriminator = 1)]
-#[seeds(b"duel", challenger: Address)]
+/// Seeds: `[b"challenger", challenger]`
+#[account(discriminator = 2, set_inner)]
+#[seeds(b"challenger", challenger: Address)]
+pub struct Challenger {
+    pub next_id: u64,
+    pub bump: u8,
+}
+
+/// Duel account — wager state between two parties.
+///
+/// Seeds: `[b"duel", challenger, duel_id.to_le_bytes()]`
+#[account(discriminator = 3, set_inner)]
+#[seeds(b"duel", challenger: Address, duel_id: u64)]
 pub struct Duel {
     pub challenger: Address,
     pub opponent: Address,
     pub mint: Address,
-    pub authority: Address,
-    pub fee_account: Address,
     pub stake: u64,
     pub expiry: i64,
-    pub fee_bps: u16,
+    pub duel_id: u64,
     pub status: u8,
     pub bump: u8,
 }

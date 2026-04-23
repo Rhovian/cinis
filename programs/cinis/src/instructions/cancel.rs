@@ -4,21 +4,32 @@ use {
         events::CancelEvent,
         state::{Duel, STATUS_ACTIVE, STATUS_PENDING},
     },
-    quasar_lang::prelude::*,
+    quasar_lang::{
+        prelude::*,
+        sysvars::{clock::Clock, Sysvar as _},
+    },
     quasar_spl::{validate_token_account, Mint, Token, TokenCpi},
 };
 
 #[derive(Accounts)]
+#[instruction(challenger_key: Address, duel_id: u64)]
 pub struct Cancel<'info> {
+    #[account(mut)]
     pub canceller: &'info mut Signer,
     #[account(
+        mut,
         has_one = mint,
+        close = canceller,
+        seeds = Duel::seeds(challenger_key, duel_id),
+        bump = duel.bump
     )]
     pub duel: &'info mut Account<Duel>,
     pub mint: &'info Account<Mint>,
+    #[account(mut)]
     pub challenger_ta: &'info mut Account<Token>,
+    #[account(mut)]
     pub opponent_ta: &'info mut Account<Token>,
-    #[account(token::mint = mint, token::authority = duel)]
+    #[account(mut, token::mint = mint, token::authority = duel)]
     pub vault: &'info mut Account<Token>,
     pub rent: &'info Sysvar<Rent>,
     pub token_program: &'info Program<Token>,
@@ -28,20 +39,17 @@ pub struct Cancel<'info> {
 impl<'info> Cancel<'info> {
     #[inline(always)]
     pub fn validate_cancel(&self) -> Result<(), ProgramError> {
-        let (expected_duel, expected_bump) =
-            Address::find_program_address(&[b"duel", self.duel.challenger.as_ref()], &crate::ID);
-        if self.duel.address().as_ref() != expected_duel.as_ref() || self.duel.bump != expected_bump
-        {
-            return Err(ProgramError::InvalidAccountData);
-        }
-
         let canceller = self.canceller.address();
         let challenger = &self.duel.challenger;
 
         match self.duel.status {
             STATUS_PENDING => {
+                // Challenger can always cancel; anyone else only after expiry.
                 if canceller.as_ref() != challenger.as_ref() {
-                    return Err(CinisError::Unauthorized.into());
+                    let now = Clock::get()?.unix_timestamp.get();
+                    if now <= self.duel.expiry.get() {
+                        return Err(CinisError::Unauthorized.into());
+                    }
                 }
             }
             STATUS_ACTIVE => {
@@ -54,16 +62,11 @@ impl<'info> Cancel<'info> {
             }
             _ => return Err(ProgramError::InvalidAccountData),
         }
-        Ok(())
-    }
 
-    #[inline(always)]
-    pub fn prepare_refund_accounts(&mut self) -> Result<(), ProgramError> {
-        let challenger = self.duel.challenger;
         validate_token_account(
             self.challenger_ta.to_account_view(),
             self.mint.address(),
-            &challenger,
+            challenger,
             self.token_program.address(),
         )?;
 
@@ -78,28 +81,20 @@ impl<'info> Cancel<'info> {
                 self.token_program.address(),
             )?;
         }
-
         Ok(())
     }
 
     #[inline(always)]
-    pub fn withdraw_and_close(&mut self) -> Result<(), ProgramError> {
-        let bump = [self.duel.bump];
-        let seeds = [
-            quasar_lang::cpi::Seed::from(<Duel as quasar_lang::traits::HasSeeds>::SEED_PREFIX),
-            quasar_lang::cpi::Seed::from(self.duel.challenger.as_ref()),
-            quasar_lang::cpi::Seed::from(&bump),
-        ];
+    pub fn withdraw_and_close(&mut self, bumps: &CancelBumps) -> Result<(), ProgramError> {
+        let seeds = self.duel_seeds(bumps);
         let stake = self.duel.stake.get();
 
         if self.duel.status == STATUS_ACTIVE {
-            // Return opponent's stake
             self.token_program
                 .transfer(self.vault, self.opponent_ta, self.duel, stake)
                 .invoke_signed(&seeds)?;
         }
 
-        // Return challenger's stake (remainder of vault)
         let remaining = self.vault.amount();
         self.token_program
             .transfer(self.vault, self.challenger_ta, self.duel, remaining)
@@ -108,11 +103,6 @@ impl<'info> Cancel<'info> {
         self.token_program
             .close_account(self.vault, self.canceller, self.duel)
             .invoke_signed(&seeds)
-    }
-
-    #[inline(always)]
-    pub fn close_duel(&mut self) -> Result<(), ProgramError> {
-        self.duel.close(self.canceller.to_account_view())
     }
 
     #[inline(always)]

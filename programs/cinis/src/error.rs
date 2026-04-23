@@ -10,6 +10,11 @@ pub enum CinisError {
     InvalidWinner,
     /// Fee basis points too high (max 10000).
     FeeTooHigh,
-    /// Unauthorized canceller.
+    /// Unauthorized canceller or admin.
     Unauthorized,
+    /// duel_id must equal the challenger's current `next_id`.
+    InvalidDuelId,
+    /// Accept attempted past expiry, or cancel path requires expiry to have
+    /// passed and it hasn't.
+    Expired,
 }
