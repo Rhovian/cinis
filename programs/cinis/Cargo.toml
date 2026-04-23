@@ -18,8 +18,8 @@ client = []
 debug = []
 
 [dependencies]
-quasar-lang = { path = "../../../quasar/lang" }
-quasar-spl = { path = "../../../quasar/spl" }
+quasar-lang = { path = "../../vendor/quasar/lang" }
+quasar-spl = { path = "../../vendor/quasar/spl" }
 solana-address = { version = "2.2.0", features = ["syscalls", "curve25519"] }
 solana-instruction = { version = "3.2.0" }
 

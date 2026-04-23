@@ -1,0 +1,3 @@
+[submodule "vendor/quasar"]
+	path = vendor/quasar
+	url = https://github.com/blueshift-gg/quasar

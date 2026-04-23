@@ -1,5 +1,6 @@
 [workspace]
 members = ["programs/cinis"]
+exclude = ["vendor/quasar"]
 resolver = "2"
 
 [workspace.lints.clippy]
