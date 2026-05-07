@@ -1,6 +1,6 @@
 extern crate std;
 use {
-    crate::idl_client::{
+    crate::client::{
         AcceptInstruction, CancelInstruction, CreateInstruction, InitializeConfigInstruction,
         ResolveInstruction, UpdateConfigInstruction,
     },

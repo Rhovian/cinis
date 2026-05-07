@@ -6,13 +6,13 @@ mod error;
 mod instructions;
 use instructions::*;
 mod events;
-#[cfg(test)]
-mod idl_client;
+#[cfg(any(feature = "client", test))]
+pub mod client;
 mod state;
 #[cfg(test)]
 mod tests;
 
-declare_id!("11111111111111111111111111111112");
+declare_id!("6gFMC9Rw5DjqyLQBY4QXRcvFHfg8bPQABfhHV2nuyRF");
 
 #[program]
 mod cinis {

@@ -1,8 +1,40 @@
+//! Off-chain client surface for the cinis program.
+//!
+//! Enabled via the `client` feature. Provides instruction builders that
+//! produce [`Instruction`] values, plus helpers for deriving the program's
+//! protocol PDAs.
+//!
+//! Associated token accounts are not derived here — callers pass `mint` and
+//! `token_program` explicitly, so ATA derivation is left to the caller (which
+//! token program is in use is their choice).
+
 use {
     alloc::vec,
     solana_address::Address,
     solana_instruction::{AccountMeta, Instruction},
 };
+
+// ---------------------------------------------------------------------------
+// PDA helpers
+// ---------------------------------------------------------------------------
+
+/// Derive the singleton `Config` PDA. Seeds: `[b"config"]`.
+pub fn config_pda() -> (Address, u8) {
+    Address::find_program_address(&[b"config"], &crate::ID)
+}
+
+/// Derive the per-challenger tip-tracker PDA. Seeds: `[b"challenger", challenger]`.
+pub fn challenger_pda(challenger: &Address) -> (Address, u8) {
+    Address::find_program_address(&[b"challenger", challenger.as_ref()], &crate::ID)
+}
+
+/// Derive a duel PDA. Seeds: `[b"duel", challenger, duel_id.to_le_bytes()]`.
+pub fn duel_pda(challenger: &Address, duel_id: u64) -> (Address, u8) {
+    Address::find_program_address(
+        &[b"duel", challenger.as_ref(), &duel_id.to_le_bytes()],
+        &crate::ID,
+    )
+}
 
 // ---------------------------------------------------------------------------
 // initialize_config (discriminator = 0)
