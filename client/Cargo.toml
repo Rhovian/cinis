@@ -5,6 +5,8 @@ edition = "2021"
 description = "Off-chain client for the cinis duel wager protocol"
 license = "MIT"
 repository = "https://github.com/Rhovian/cinis"
+keywords = ["solana", "duel", "wager", "client", "pda"]
+categories = ["api-bindings", "cryptography::cryptocurrencies"]
 
 [lib]
 
