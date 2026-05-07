@@ -203,6 +203,12 @@ fn test_initialize_config() {
     assert_eq!(&data[65..67], &fee_bps.to_le_bytes(), "fee_bps");
     assert_eq!(data[67], config_bump, "bump");
 
+    let decoded = cinis_client::Config::try_from_account_data(data).unwrap();
+    assert_eq!(decoded.admin, admin);
+    assert_eq!(decoded.treasury, treasury);
+    assert_eq!(decoded.fee_bps, fee_bps);
+    assert_eq!(decoded.bump, config_bump);
+
     println!(
         "  INITIALIZE_CONFIG CU: {}",
         result.compute_units_consumed
@@ -427,6 +433,10 @@ fn test_create() {
         "next_id bumped"
     );
 
+    let decoded_challenger =
+        cinis_client::Challenger::try_from_account_data(challenger_state_data).unwrap();
+    assert_eq!(decoded_challenger.next_id, 1);
+
     // Duel PDA
     let duel_data = &result.resulting_accounts[3].1.data;
     assert_eq!(duel_data.len(), 123, "duel data length");
@@ -438,6 +448,15 @@ fn test_create() {
     assert_eq!(&duel_data[105..113], &expiry.to_le_bytes(), "expiry");
     assert_eq!(&duel_data[113..121], &duel_id.to_le_bytes(), "duel_id");
     assert_eq!(duel_data[121], 0, "status (pending)");
+
+    let decoded_duel = cinis_client::Duel::try_from_account_data(duel_data).unwrap();
+    assert_eq!(decoded_duel.challenger, challenger);
+    assert_eq!(decoded_duel.opponent, Address::new_from_array([0u8; 32]));
+    assert_eq!(decoded_duel.mint, mint);
+    assert_eq!(decoded_duel.stake, stake);
+    assert_eq!(decoded_duel.expiry, expiry);
+    assert_eq!(decoded_duel.duel_id, duel_id);
+    assert_eq!(decoded_duel.status, cinis_client::STATUS_PENDING);
 
     // Vault: stake deposited
     let vault_data = &result.resulting_accounts[6].1.data;
@@ -753,6 +772,10 @@ fn test_accept() {
     let duel_data = &result.resulting_accounts[1].1.data;
     assert_eq!(&duel_data[33..65], opponent.as_ref(), "opponent set");
     assert_eq!(duel_data[121], 1, "status (active)");
+
+    let decoded_duel = cinis_client::Duel::try_from_account_data(duel_data).unwrap();
+    assert_eq!(decoded_duel.opponent, opponent);
+    assert_eq!(decoded_duel.status, cinis_client::STATUS_ACTIVE);
 
     println!("  ACCEPT CU: {}", result.compute_units_consumed);
 }
