@@ -6,8 +6,6 @@ mod error;
 mod instructions;
 use instructions::*;
 mod events;
-#[cfg(any(feature = "client", test))]
-pub mod client;
 mod state;
 #[cfg(test)]
 mod tests;

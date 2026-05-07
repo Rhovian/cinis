@@ -1,6 +1,6 @@
 extern crate std;
 use {
-    crate::client::{
+    cinis_client::{
         AcceptInstruction, CancelInstruction, CreateInstruction, InitializeConfigInstruction,
         ResolveInstruction, UpdateConfigInstruction,
     },
@@ -130,6 +130,19 @@ fn ata(wallet: Address, mint: Address, token_program: Address) -> Address {
     let tp = Pubkey::new_from_array(*token_program.as_array());
     let pk = get_associated_token_address_with_program_id(&w, &m, &tp);
     Address::new_from_array(pk.to_bytes())
+}
+
+// ---------------------------------------------------------------------------
+// Test: program ID stays in sync with cinis-client
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_program_id_matches_client() {
+    assert_eq!(
+        crate::ID,
+        cinis_client::ID,
+        "cinis::ID and cinis_client::ID drifted apart \u{2014} update both",
+    );
 }
 
 // ---------------------------------------------------------------------------

@@ -1,18 +1,18 @@
-//! Off-chain client surface for the cinis program.
+//! Off-chain client for the cinis duel wager protocol.
 //!
-//! Enabled via the `client` feature. Provides instruction builders that
-//! produce [`Instruction`] values, plus helpers for deriving the program's
-//! protocol PDAs.
+//! This crate has no dependency on Quasar — it is intended for downstream
+//! consumers (CLIs, bots, indexers) that need to construct `cinis`
+//! instructions and derive its protocol PDAs without pulling the on-chain
+//! framework into their build graph.
 //!
 //! Associated token accounts are not derived here — callers pass `mint` and
-//! `token_program` explicitly, so ATA derivation is left to the caller (which
-//! token program is in use is their choice).
+//! `token_program` explicitly, since which token program is in use is their
+//! choice.
 
-use {
-    alloc::vec,
-    solana_address::Address,
-    solana_instruction::{AccountMeta, Instruction},
-};
+use solana_address::{declare_id, Address};
+use solana_instruction::{AccountMeta, Instruction};
+
+declare_id!("6gFMC9Rw5DjqyLQBY4QXRcvFHfg8bPQABfhHV2nuyRF");
 
 // ---------------------------------------------------------------------------
 // PDA helpers
@@ -20,19 +20,19 @@ use {
 
 /// Derive the singleton `Config` PDA. Seeds: `[b"config"]`.
 pub fn config_pda() -> (Address, u8) {
-    Address::find_program_address(&[b"config"], &crate::ID)
+    Address::find_program_address(&[b"config"], &ID)
 }
 
 /// Derive the per-challenger tip-tracker PDA. Seeds: `[b"challenger", challenger]`.
 pub fn challenger_pda(challenger: &Address) -> (Address, u8) {
-    Address::find_program_address(&[b"challenger", challenger.as_ref()], &crate::ID)
+    Address::find_program_address(&[b"challenger", challenger.as_ref()], &ID)
 }
 
 /// Derive a duel PDA. Seeds: `[b"duel", challenger, duel_id.to_le_bytes()]`.
 pub fn duel_pda(challenger: &Address, duel_id: u64) -> (Address, u8) {
     Address::find_program_address(
         &[b"duel", challenger.as_ref(), &duel_id.to_le_bytes()],
-        &crate::ID,
+        &ID,
     )
 }
 
@@ -61,7 +61,7 @@ impl From<InitializeConfigInstruction> for Instruction {
         let mut data = vec![0u8];
         data.extend_from_slice(&ix.fee_bps.to_le_bytes());
         Instruction {
-            program_id: crate::ID,
+            program_id: ID,
             accounts,
             data,
         }
@@ -89,7 +89,7 @@ impl From<UpdateConfigInstruction> for Instruction {
         let mut data = vec![1u8];
         data.extend_from_slice(&ix.fee_bps.to_le_bytes());
         Instruction {
-            program_id: crate::ID,
+            program_id: ID,
             accounts,
             data,
         }
@@ -137,7 +137,7 @@ impl From<CreateInstruction> for Instruction {
         data.extend_from_slice(&ix.stake.to_le_bytes());
         data.extend_from_slice(&ix.expiry.to_le_bytes());
         Instruction {
-            program_id: crate::ID,
+            program_id: ID,
             accounts,
             data,
         }
@@ -173,7 +173,7 @@ impl From<AcceptInstruction> for Instruction {
         data.extend_from_slice(ix.challenger_key.as_ref());
         data.extend_from_slice(&ix.duel_id.to_le_bytes());
         Instruction {
-            program_id: crate::ID,
+            program_id: ID,
             accounts,
             data,
         }
@@ -223,7 +223,7 @@ impl From<ResolveInstruction> for Instruction {
         data.extend_from_slice(&ix.duel_id.to_le_bytes());
         data.push(ix.winner);
         Instruction {
-            program_id: crate::ID,
+            program_id: ID,
             accounts,
             data,
         }
@@ -265,7 +265,7 @@ impl From<CancelInstruction> for Instruction {
         data.extend_from_slice(ix.challenger_key.as_ref());
         data.extend_from_slice(&ix.duel_id.to_le_bytes());
         Instruction {
-            program_id: crate::ID,
+            program_id: ID,
             accounts,
             data,
         }

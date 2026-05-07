@@ -1,5 +1,5 @@
 [workspace]
-members = ["programs/cinis"]
+members = ["programs/cinis", "client"]
 exclude = ["vendor/quasar"]
 resolver = "2"
 
